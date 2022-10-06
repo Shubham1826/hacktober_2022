@@ -1,0 +1,238 @@
+import pandas as pd 
+
+def octant_transition_count(mod=5000):
+    try:
+        # Reading the Excel (.xlsx) file through a try and except blockss
+        df = pd.read_excel(r'input_octant_transition_identify.xlsx')
+    except:
+        print("Error: File not found")
+
+    # Finding mean of each column i.e. U, V and W
+    U_mean = df["U"].mean()
+    V_mean = df["V"].mean()
+    W_mean = df["W"].mean()
+
+    # Creating a column for putting means of U, V and W
+    df['U avg'] = pd.Series([U_mean], dtype='float64')
+    df['V avg'] = pd.Series([V_mean], dtype='float64')
+    df['W avg'] = pd.Series([W_mean], dtype='float64')
+
+    # Creating a column of finding differences
+    df["U' = U - U avg"] = df['U'] - U_mean
+    df["V' = V - V avg"] = df['V'] - V_mean
+    df["W' = W - W avg"] = df['W'] - W_mean
+
+    # Intialising variables
+    octact_list = []
+    length = df.shape[0]
+    val = 0
+
+    # Finding the octant of each U', V' and W'
+    for i in range(length):
+
+        # Finding for +1 & -1
+        if df.at[i, "U' = U - U avg"] >= 0 and df.at[i, "V' = V - V avg"] >= 0:
+            val = 1
+            if df.at[i, "W' = W - W avg"] < 0:
+                val = val*(-1)
+            octact_list.append(val)
+
+        # Finding for +2 & -2
+        elif df.at[i, "U' = U - U avg"] < 0 and df.at[i, "V' = V - V avg"] >= 0:
+            val = 2
+            if df.at[i, "W' = W - W avg"] < 0:
+                val = val*(-1)
+            octact_list.append(val)
+
+        # Finding for +3 & -3
+        elif df.at[i, "U' = U - U avg"] < 0 and df.at[i, "V' = V - V avg"] < 0:
+            val = 3
+            if df.at[i, "W' = W - W avg"] < 0:
+                val = val*(-1)
+            octact_list.append(val)
+
+        # Finding for +4 & -4
+        elif df.at[i, "U' = U - U avg"] >= 0 and df.at[i, "V' = V - V avg"] < 0:
+            val = 4
+            if df.at[i, "W' = W - W avg"] < 0:
+                val = val*(-1)
+            octact_list.append(val)
+
+    # Defining column name for octact values
+    df['Octact'] = octact_list
+
+    # Intializing overall counts 
+    overal = {1: 0, -1: 0, 2: 0, -2: 0, 3: 0, -3: 0, 4: 0, -4: 0}
+    
+    # Intializing range section which help us to put the count of each Octants in a particular ranges.
+    range_overal = {}
+
+    # Intialize lower limit and upper limit of range
+    lower_limit = 0
+    upper_limit = mod - 1
+
+    # Finding the counts of each Octact for a particular range
+    while lower_limit < length:
+        for x in range(lower_limit, min(upper_limit+1, length)):
+            overal[df.at[x, 'Octact']] += 1
+        range_overal[str(lower_limit) + '-' + str(min(upper_limit + 1, length))] = overal
+
+        # Again Intialzing for next range
+        overal = {1: 0, -1: 0, 2: 0, -2: 0, 3: 0, -3: 0, 4: 0, -4: 0}
+
+        # Changing target range
+        lower_limit = upper_limit + 1
+        upper_limit = upper_limit + mod
+
+    # Counting Octacts(Overall) of each Octact
+    for x in range(length):
+        overal[df.at[x, 'Octact']] += 1
+
+    # Transitions Calculation:
+
+    # Intialzing number of transitions
+    transi = [[0]*8 for _ in range(8)]
+    range_transi = {}
+
+    # Intialize range lower and upper limit
+    lower_limit = 0
+    upper_limit = mod - 1
+
+    # Defining position of each Octants Values
+    indexing = {1: 0, -1: 1, 2: 2, -2: 3, 3: 4, -3: 5, 4: 6, -4: 7}
+
+    # Finding the number of transitions for the particular range
+    while lower_limit < length:
+        for x in range(lower_limit, min(upper_limit, length)):
+            if x+1 < length:
+                i = indexing[df.at[x, 'Octact']]
+                j = indexing[df.at[x+1, 'Octact']]
+
+                transi[i][j] += 1
+
+        range_transi[str(lower_limit) + '-' + str(min(upper_limit, length))] = transi
+
+        # Intialzing transition list for a next range
+        transi = [[0]*8 for _ in range(8)]
+
+        # Intialize range for further calculation of transitions in subseqeunt ranges
+        lower_limit = upper_limit + 1
+        upper_limit = upper_limit + mod
+
+    # Calculating the Overall Number of Transitions
+    for x in range(length):
+        if x+1 < length:
+            i = indexing[df.at[x, 'Octact']]
+            j = indexing[df.at[x+1, 'Octact']]
+
+            temp = transi[i][j]
+            transi[i][j] = temp + 1
+    
+    # Adding a colmun with cell showing User Input
+    df.at[1, "dummy"] = "User Input"
+    df.rename(columns={'dummy': ''}, inplace=True)
+
+    # Adding a column for adding some mentioned formating elements
+    df["dummy"] = pd.Series([], dtype='float64')
+    df.rename(columns={'dummy': ''}, inplace=True)
+
+    # Adding column for each Octacts Value
+    df[1] = pd.Series([], dtype='float64')
+    df[-1] = pd.Series([], dtype='float64')
+    df[2] = pd.Series([], dtype='float64')
+    df[-2] = pd.Series([], dtype='float64')
+    df[3] = pd.Series([], dtype='float64')
+    df[-3] = pd.Series([], dtype='float64')
+    df[4] = pd.Series([], dtype='float64')
+    df[-4] = pd.Series([], dtype='float64')
+
+    # Adding Overall Count for each particular Octacts in a row starting from Overall Count
+    df.iat[0, 12] = "Overall Count"
+    for x in overal:
+        df.at[0, x] = overal[x]
+
+    # Adding Mod Value in a partiuclar Cell
+    df.iat[1, 12] = "Mod " + str(mod)
+
+    # Adding the ranges with each particular Octact Value from the range_overal list which stores the calculated valuess
+    row = 2
+    for x in range_overal:
+        df.iat[row, 12] = x
+        arr = range_overal[x]
+        for i in arr:
+            df.at[row, i] = arr[i]
+        row += 1
+    df.iat[row, 12] = "Verified"
+    
+    # For adding Overall Counts for a particular Octact Value
+    for x in overal:
+        df.at[row, x] = overal[x]
+
+    # Creating a decode dict for adding the Transition Counts
+    decode = {0: 1, 1: -1, 2: 2, 3: -2, 4: 3, 5: -3, 6: 4, 7: -4}
+
+    # Increasing a row index for adding Elements in Cell as per Format in given file
+    row += 3
+    df.iat[row, 12] = "Overall Transition Count"
+    row += 1
+    df.iat[row, 13] = "To"
+    row += 1
+    df.iat[row, 12] = "Count"
+
+    # Adding Octact Value starting from the Cell after Count in every Transition Counts
+    for x in indexing:
+        df.at[row, x] = x
+    row += 1
+    df.iat[row, 11] = "From"
+
+    # Adding Overall Transition Counts for every ranges (cummulative)
+    init = 0
+    for i in range(8):
+        df.iat[row, 12] = decode[init]
+        for j in range(8):
+            df.at[row, decode[j]] = transi[i][j]
+        row += 1
+        init += 1
+
+    # For calculating the transition counts of particular ranges
+    for x in range_transi:
+        mod_trans = range_transi[x]
+
+        # Adding elements as per required format
+        row += 2
+        df.iat[row, 12] = "Mod Transition Count"
+        row += 1
+        df.iat[row, 12] = x
+        df.iat[row, 13] = "To"
+        row += 1
+        df.iat[row, 12] = "Count"
+        for x in indexing:
+            df.at[row, x] = x
+        row += 1
+        df.iat[row, 11] = "From"
+
+        # Adding Transition Counts at a particular Cell
+        init = 0
+        for i in range(8):
+            df.iat[row, 12] = decode[init]
+            for j in range(8):
+                df.at[row, decode[j]] = mod_trans[i][j]
+            row += 1
+            init += 1
+
+    # Creating try and except block for evaluation purpose
+    try:
+        df.to_excel('output_octant_transition_identify.xlsx',
+                    index=False)  # writing the dataframe to excel file
+    except:
+        print("Error: Cannot create Excel file")
+
+    print("Finished Executing")    
+
+
+# Try and Except Block for mod value
+try:
+    mod = 5000  # variable value can be changed
+    octant_transition_count(mod)
+except:
+    print("Some error occured")
