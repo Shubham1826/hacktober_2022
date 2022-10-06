@@ -1,0 +1,78 @@
+#include<bits/stdc++.h>
+using namespace std;
+#define ll long long
+#define vi vector<int>
+#define vb vector<bool>
+#define pb push_back
+#define all(a) a.begin(), a.end()
+#define rall(a) a.rbegin(), a.rend()
+#define f(i,a,b) for(int i=a;i<b;i++)
+#define fr(i,a,b) for(int i=a;i>=b;i--)
+
+vector<pair<int, int>> movements = {
+    {1,0},{-1,0},{0,1},{0,-1}
+};
+bool isposs(int x, int y, vector<vector<bool>>& vis){
+    int n = vis.size(), m=vis[0].size();
+    return x>=0 && y>=0 && x<n && y<m && !vis[x][y];
+}
+
+vector<vector<int>> bfs(vector<vector<int>>& v){
+    int n = v.size(), m =v[0].size();
+    vector<vector<int>> ans(n, vector<int>(m,0));
+    vector<vector<bool>> vis(n, vector<bool>(m, false));
+    queue<pair<int, int>> q;
+    f(i,0,n){
+        f(j,0,m){
+            if(v[i][j]==0){
+                
+                q.push(make_pair(i,j));
+                vis[i][j] = true;
+            }
+        }
+    }
+    
+    int d = 0;
+    while(!q.empty()){
+        int size = q.size();
+        
+        while(size--){
+            pair<int, int> front = q.front();
+            q.pop();
+            int x = front.first;
+            int y = front.second;
+            
+            ans[x][y]= d;
+            for(auto& cc: movements){
+                if(isposs(x+cc.first, y+cc.second, vis)){
+                    q.push(make_pair(x+cc.first, y+cc.second));
+                    vis[x+cc.first][y+cc.second] = true;
+                }
+            }
+        }
+        d++;
+    }
+    return ans;
+}   
+int main(){
+ios_base::sync_with_stdio(false);
+cin.tie(NULL); cout.tie(NULL);
+    int n,m;
+    cin>>n>>m;
+    vector<vector<int>> v(n, vector<int>(m));
+    f(i,0,n){
+        f(j,0,m){
+            cin>>v[i][j];
+
+        }
+    }
+    vector<vector<int>> ans = bfs(v);
+
+    f(i,0,n){
+        f(j,0,m){
+            cout<<ans[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+ return 0;
+}
